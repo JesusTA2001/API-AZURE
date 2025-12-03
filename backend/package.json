@@ -10,7 +10,7 @@
     "build": "echo 'No build step required for Node.js backend'"
   },
   "engines": {
-    "node": ">=18.x"
+    "node": "18.x"
   },
   "keywords": [
     "api",
