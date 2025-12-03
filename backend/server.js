@@ -5,10 +5,33 @@ const { testConnection } = require('./config/db');
 
 const app = express();
 
-// Middleware CORS - Configuración específica para Azure Static Web Apps
+// Middleware CORS - Configuración para producción y desarrollo
+const allowedOrigins = [
+  "https://gray-beach-0cdc4470f.3.azurestaticapps.net", // Frontend en Azure
+  "http://localhost:3000", // React/Next.js desarrollo
+  "http://localhost:5173", // Vite desarrollo
+  "http://localhost:4200"  // Angular desarrollo
+];
+
 app.use(cors({
-  origin: "https://gray-beach-0cdc4470f.3.azurestaticapps.net",
-  methods: "GET,POST,PUT,DELETE,OPTIONS",
+  origin: function (origin, callback) {
+    // Permitir requests sin origin (como Postman, Thunder Client)
+    if (!origin) return callback(null, true);
+    
+    // En desarrollo, permitir cualquier localhost
+    if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
+      return callback(null, true);
+    }
+    
+    // Verificar si el origin está en la lista permitida
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS bloqueado para origin: ${origin}`);
+      callback(new Error('No permitido por CORS'));
+    }
+  },
+  methods: "GET,POST,PUT,DELETE,OPTIONS,PATCH",
   allowedHeaders: "Content-Type, Authorization",
   credentials: true
 }));

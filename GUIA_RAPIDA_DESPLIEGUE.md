@@ -85,9 +85,9 @@ NODE_ENV = production
 2. Configurar:
 ```
 Origen: GitHub
-Organización: [Tu usuario]
-Repositorio: api-escolar-azure
-Rama: main
+Organización: JesusTA2001
+Repositorio: API-AZURE
+Rama: master
 ```
 
 3. Click **"Guardar"**
