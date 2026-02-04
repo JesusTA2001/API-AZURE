@@ -25,6 +25,7 @@ exports.getGrupos = async (req, res) => {
       LEFT JOIN DatosPersonales dp_prof ON e.id_dp = dp_prof.id_dp
       LEFT JOIN catalogohorarios ch ON g.id_cHorario = ch.id_cHorario
       LEFT JOIN Nivel n ON g.id_Nivel = n.id_Nivel
+      WHERE g.estado = 'activo'
       ORDER BY g.id_Grupo
     `);
 
@@ -109,10 +110,10 @@ exports.createGrupo = async (req, res) => {
     const { grupo, id_Periodo, id_Profesor, id_Nivel, ubicacion, id_cHorario, dia, horaInicio, horaFin, alumnoIds } = req.body;
 
     // Validar campos requeridos básicos
-    if (!grupo || !id_Profesor || !ubicacion) {
+    if (!grupo || !ubicacion) {
       await connection.rollback();
       return res.status(400).json({ 
-        message: 'Faltan campos requeridos (grupo, id_Profesor, ubicacion)' 
+        message: 'Faltan campos requeridos (grupo, ubicacion)' 
       });
     }
 
@@ -151,7 +152,7 @@ exports.createGrupo = async (req, res) => {
     // Insertar grupo
     const [result] = await connection.query(
       'INSERT INTO Grupo (grupo, id_Periodo, id_Profesor, id_Nivel, ubicacion, id_cHorario) VALUES (?, ?, ?, ?, ?, ?)',
-      [grupo, periodoFinal, id_Profesor, nivelFinal, ubicacion, horarioFinal]
+      [grupo, periodoFinal, id_Profesor || null, nivelFinal, ubicacion, horarioFinal]
     );
 
     const nuevoGrupoId = result.insertId;
@@ -205,9 +206,9 @@ exports.updateGrupo = async (req, res) => {
       return res.status(404).json({ message: 'Grupo no encontrado' });
     }
 
-    // Si se proporcionan día y horas pero no id_cHorario, buscar o crear el horario
+    // Si se proporcionan día y horas, buscar o crear el horario (independientemente de si ya tiene id_cHorario)
     let horarioFinal = id_cHorario;
-    if (dia && horaInicio && horaFin && !id_cHorario) {
+    if (dia && horaInicio && horaFin) {
       const horaCompleta = `${horaInicio}-${horaFin}`;
       
       // Buscar horario existente
@@ -231,7 +232,7 @@ exports.updateGrupo = async (req, res) => {
     // Actualizar grupo
     await connection.query(
       'UPDATE Grupo SET grupo = ?, id_Periodo = ?, id_Profesor = ?, id_Nivel = ?, ubicacion = ?, id_cHorario = ? WHERE id_Grupo = ?',
-      [grupo, id_Periodo, id_Profesor, id_Nivel, ubicacion, horarioFinal, id]
+      [grupo, id_Periodo, id_Profesor || null, id_Nivel, ubicacion, horarioFinal, id]
     );
 
     await connection.commit();
@@ -362,36 +363,77 @@ exports.quitarAlumno = async (req, res) => {
   }
 };
 
-
-// Obtener historial de grupos
+// Obtener historial de grupos finalizados
 exports.getHistorialGrupos = async (req, res) => {
   try {
-    const [grupos] = await pool.query(```n      SELECT
+    const { id_Periodo } = req.query;
+    
+    let query = `
+      SELECT 
         g.id_Grupo,
-        g.nombre_Grupo,
-        n.nombreNivel,
-        p.descripcion AS periodo_descripcion,
-        pr.nombre AS nombre_profesor,
-        pr.primerApellido AS apellido_profesor,
-        h.dia,
-        h.horaInicio,
-        h.horaFin,
-        eg.nombre_Estado AS estado
+        g.grupo,
+        g.id_Periodo,
+        g.id_Profesor,
+        g.id_Nivel,
+        g.ubicacion,
+        g.id_cHorario,
+        g.estado,
+        per.descripcion as periodo_descripcion,
+        per.año as periodo_año,
+        CONCAT(dp_prof.apellidoPaterno, ' ', dp_prof.apellidoMaterno, ' ', dp_prof.nombre) as profesor_nombre,
+        ch.diaSemana,
+        ch.hora,
+        n.nivel as nivel_nombre,
+        (SELECT COUNT(*) FROM EstudianteGrupo eg WHERE eg.id_Grupo = g.id_Grupo) as num_alumnos
       FROM Grupo g
+      LEFT JOIN Periodo per ON g.id_Periodo = per.id_Periodo
+      LEFT JOIN Profesor p ON g.id_Profesor = p.id_Profesor
+      LEFT JOIN Empleado e ON p.id_empleado = e.id_empleado
+      LEFT JOIN DatosPersonales dp_prof ON e.id_dp = dp_prof.id_dp
+      LEFT JOIN catalogohorarios ch ON g.id_cHorario = ch.id_cHorario
       LEFT JOIN Nivel n ON g.id_Nivel = n.id_Nivel
-      LEFT JOIN Periodo p ON g.id_Periodo = p.id_Periodo
-      LEFT JOIN Profesor pr ON g.id_Profesor = pr.id_Profesor
-      LEFT JOIN Horario h ON g.id_Horario = h.id_Horario
-      LEFT JOIN EstadoGrupo eg ON g.id_Estado = eg.id_Estado
-      ORDER BY p.a�o DESC, g.id_Grupo DESC
-    ```);
+      WHERE g.estado = 'concluido'
+    `;
+    
+    const params = [];
+    if (id_Periodo) {
+      query += ' AND g.id_Periodo = ?';
+      params.push(id_Periodo);
+    }
+    
+    query += ' ORDER BY per.año DESC, g.id_Grupo DESC';
+    
+    const [grupos] = await pool.query(query, params);
 
-    res.json(grupos);
+    // Para cada grupo, obtener los alumnos (incluidos los históricos)
+    for (let grupo of grupos) {
+      const [alumnos] = await pool.query(`
+        SELECT 
+          eg.nControl,
+          eg.estado as estado_en_grupo,
+          CONCAT(dp.apellidoPaterno, ' ', dp.apellidoMaterno, ' ', dp.nombre) as nombre_completo,
+          dp.email,
+          e.ubicacion
+        FROM EstudianteGrupo eg
+        JOIN Estudiante e ON eg.nControl = e.nControl
+        JOIN DatosPersonales dp ON e.id_dp = dp.id_dp
+        WHERE eg.id_Grupo = ?
+        ORDER BY dp.apellidoPaterno, dp.apellidoMaterno, dp.nombre
+      `, [grupo.id_Grupo]);
+      
+      grupo.alumnos = alumnos;
+    }
+
+    res.json({
+      success: true,
+      grupos: grupos
+    });
   } catch (error) {
     console.error('Error al obtener historial de grupos:', error);
-    res.status(500).json({
-      message: 'Error al obtener historial de grupos',
-      error: error.message
+    res.status(500).json({ 
+      success: false,
+      message: 'Error al obtener historial de grupos', 
+      error: error.message 
     });
   }
 };
