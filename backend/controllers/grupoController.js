@@ -361,3 +361,37 @@ exports.quitarAlumno = async (req, res) => {
     connection.release();
   }
 };
+
+
+// Obtener historial de grupos
+exports.getHistorialGrupos = async (req, res) => {
+  try {
+    const [grupos] = await pool.query(```n      SELECT
+        g.id_Grupo,
+        g.nombre_Grupo,
+        n.nombreNivel,
+        p.descripcion AS periodo_descripcion,
+        pr.nombre AS nombre_profesor,
+        pr.primerApellido AS apellido_profesor,
+        h.dia,
+        h.horaInicio,
+        h.horaFin,
+        eg.nombre_Estado AS estado
+      FROM Grupo g
+      LEFT JOIN Nivel n ON g.id_Nivel = n.id_Nivel
+      LEFT JOIN Periodo p ON g.id_Periodo = p.id_Periodo
+      LEFT JOIN Profesor pr ON g.id_Profesor = pr.id_Profesor
+      LEFT JOIN Horario h ON g.id_Horario = h.id_Horario
+      LEFT JOIN EstadoGrupo eg ON g.id_Estado = eg.id_Estado
+      ORDER BY p.año DESC, g.id_Grupo DESC
+    ```);
+
+    res.json(grupos);
+  } catch (error) {
+    console.error('Error al obtener historial de grupos:', error);
+    res.status(500).json({
+      message: 'Error al obtener historial de grupos',
+      error: error.message
+    });
+  }
+};
