@@ -6,10 +6,9 @@ exports.getAdministradores = async (req, res) => {
   try {
     const [administradores] = await pool.query(`
       SELECT a.id_Administrador, a.estado,
-             e.id_empleado AS numero_empleado, e.RFC,
-             dp.id_dp, dp.apellidoPaterno, dp.apellidoMaterno,
-             CONCAT(dp.apellidoPaterno, ' ', dp.apellidoMaterno, ' ', dp.nombre) AS nombre,
-             dp.email AS correo, dp.genero, dp.CURP AS curp, dp.telefono, dp.direccion
+             e.id_empleado, e.RFC,
+             dp.id_dp, dp.apellidoPaterno, dp.apellidoMaterno, dp.nombre,
+             dp.email, dp.genero, dp.CURP, dp.telefono, dp.direccion
       FROM Administrador a
       JOIN Empleado e ON a.id_empleado = e.id_empleado
       JOIN DatosPersonales dp ON e.id_dp = dp.id_dp
@@ -28,11 +27,10 @@ exports.getAdministradorById = async (req, res) => {
   try {
     const { id } = req.params;
     const [administradores] = await pool.query(`
-      SELECT a.id_administrador,
-             e.id_empleado AS numero_empleado, e.estado,
-             dp.id_dp, dp.apellidoPaterno, dp.apellidoMaterno,
-             CONCAT(dp.apellidoPaterno, ' ', dp.apellidoMaterno, ' ', dp.nombre) AS nombre,
-             dp.email AS correo, dp.genero, dp.CURP AS curp, dp.telefono, dp.direccion
+      SELECT a.id_administrador, a.gradoEstudio,
+             e.id_empleado, e.ubicacion, e.estado,
+             dp.id_dp, dp.apellidoPaterno, dp.apellidoMaterno, dp.nombre,
+             dp.email, dp.genero, dp.CURP, dp.telefono, dp.direccion
       FROM Administrador a
       JOIN Empleado e ON a.id_empleado = e.id_empleado
       JOIN DatosPersonales dp ON e.id_dp = dp.id_dp
@@ -173,20 +171,20 @@ exports.updateAdministrador = async (req, res) => {
       [apellidoPaterno, apellidoMaterno, nombre, email, genero, CURP, telefono, direccion, id_dp]
     );
 
-    // 3. Actualizar empleado (solo estado, no ubicacion)
+    // 3. Actualizar empleado
     await connection.query(
       `UPDATE Empleado 
-       SET estado = ?
+       SET ubicacion = ?, estado = ?
        WHERE id_empleado = ?`,
-      [estado, id_empleado]
+      [ubicacion, estado, id_empleado]
     );
 
-    // 4. Actualizar administrador (solo estado)
+    // 4. Actualizar administrador
     await connection.query(
       `UPDATE Administrador 
-       SET estado = ?
+       SET gradoEstudio = ?
        WHERE id_administrador = ?`,
-      [estado, id]
+      [gradoEstudio, id]
     );
 
     await connection.commit();

@@ -176,17 +176,17 @@ exports.updateProfesor = async (req, res) => {
     // 3. Actualizar empleado
     await connection.query(
       `UPDATE Empleado 
-       SET estado = ?
+       SET ubicacion = ?, estado = ?
        WHERE id_empleado = ?`,
-      [estado, id_empleado]
+      [ubicacion, estado, id_empleado]
     );
 
     // 4. Actualizar profesor
     await connection.query(
       `UPDATE Profesor 
-       SET ubicacion = ?, nivelEstudio = ?, estado = ?
+       SET numero_empleado = ?, RFC = ?, nivelEstudio = ?
        WHERE id_profesor = ?`,
-      [ubicacion, nivelEstudio, estado, id]
+      [numero_empleado, RFC, nivelEstudio, id]
     );
 
     await connection.commit();
