@@ -97,15 +97,15 @@ exports.createProfesor = async (req, res) => {
 
     const id_profesor = profesorResult.insertId;
 
-    // 4. Crear usuario si se proporcionó
-    if (usuario && contraseña) {
-      const hashedPassword = await bcrypt.hash(contraseña, 10);
-      await connection.query(
-        `INSERT INTO Usuarios (usuario, contraseña, rol, id_relacion)
-         VALUES (?, ?, 'PROFESOR', ?)`,
-        [usuario, hashedPassword, id_profesor]
-      );
-    }
+    // 4. Crear usuario automáticamente con credenciales por defecto
+    // Usuario: RFC, Contraseña: 123456
+    const defaultPassword = '123456';
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+    await connection.query(
+      `INSERT INTO Usuarios (usuario, contraseña, rol, id_relacion)
+       VALUES (?, ?, 'PROFESOR', ?)`,
+      [RFC, hashedPassword, id_profesor]
+    );
 
     await connection.commit();
 
@@ -173,20 +173,20 @@ exports.updateProfesor = async (req, res) => {
       [apellidoPaterno, apellidoMaterno, nombre, email, genero, CURP, telefono, direccion, id_dp]
     );
 
-    // 3. Actualizar empleado
+    // 3. Actualizar empleado (solo estado, RFC no cambia)
     await connection.query(
       `UPDATE Empleado 
-       SET ubicacion = ?, estado = ?
+       SET estado = ?
        WHERE id_empleado = ?`,
-      [ubicacion, estado, id_empleado]
+      [estado, id_empleado]
     );
 
     // 4. Actualizar profesor
     await connection.query(
       `UPDATE Profesor 
-       SET numero_empleado = ?, RFC = ?, nivelEstudio = ?
+       SET ubicacion = ?, nivelEstudio = ?, estado = ?
        WHERE id_profesor = ?`,
-      [numero_empleado, RFC, nivelEstudio, id]
+      [ubicacion, nivelEstudio, estado, id]
     );
 
     await connection.commit();

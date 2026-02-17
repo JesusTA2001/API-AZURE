@@ -97,15 +97,15 @@ exports.createAdministrador = async (req, res) => {
 
     const id_administrador = adminResult.insertId;
 
-    // 4. Crear usuario si se proporcionó
-    if (usuario && contraseña) {
-      const hashedPassword = await bcrypt.hash(contraseña, 10);
-      await connection.query(
-        `INSERT INTO Usuarios (usuario, contraseña, rol, id_relacion)
-         VALUES (?, ?, 'ADMINISTRADOR', ?)`,
-        [usuario, hashedPassword, id_administrador]
-      );
-    }
+    // 4. Crear usuario automáticamente con credenciales por defecto
+    // Usuario: email, Contraseña: 123456
+    const defaultPassword = '123456';
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+    await connection.query(
+      `INSERT INTO Usuarios (usuario, contraseña, rol, id_relacion)
+       VALUES (?, ?, 'ADMINISTRADOR', ?)`,
+      [email, hashedPassword, id_administrador]
+    );
 
     await connection.commit();
 
@@ -171,20 +171,20 @@ exports.updateAdministrador = async (req, res) => {
       [apellidoPaterno, apellidoMaterno, nombre, email, genero, CURP, telefono, direccion, id_dp]
     );
 
-    // 3. Actualizar empleado
+    // 3. Actualizar empleado (solo estado)
     await connection.query(
       `UPDATE Empleado 
-       SET ubicacion = ?, estado = ?
+       SET estado = ?
        WHERE id_empleado = ?`,
-      [ubicacion, estado, id_empleado]
+      [estado, id_empleado]
     );
 
-    // 4. Actualizar administrador
+    // 4. Actualizar administrador (solo estado)
     await connection.query(
       `UPDATE Administrador 
-       SET gradoEstudio = ?
+       SET estado = ?
        WHERE id_administrador = ?`,
-      [gradoEstudio, id]
+      [estado, id]
     );
 
     await connection.commit();
