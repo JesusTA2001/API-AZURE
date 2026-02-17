@@ -5,7 +5,7 @@ const bcrypt = require('bcrypt');
 exports.getAdministradores = async (req, res) => {
   try {
     const [administradores] = await pool.query(`
-      SELECT a.id_Administrador, a.estado, a.gradoEstudio,
+      SELECT a.id_Administrador, a.estado,
              e.id_empleado AS numero_empleado, e.RFC, e.ubicacion,
              dp.id_dp, dp.apellidoPaterno, dp.apellidoMaterno,
              CONCAT(dp.apellidoPaterno, ' ', dp.apellidoMaterno, ' ', dp.nombre) AS nombre,
@@ -28,7 +28,7 @@ exports.getAdministradorById = async (req, res) => {
   try {
     const { id } = req.params;
     const [administradores] = await pool.query(`
-      SELECT a.id_administrador, a.gradoEstudio,
+      SELECT a.id_administrador,
              e.id_empleado AS numero_empleado, e.ubicacion, e.estado,
              dp.id_dp, dp.apellidoPaterno, dp.apellidoMaterno,
              CONCAT(dp.apellidoPaterno, ' ', dp.apellidoMaterno, ' ', dp.nombre) AS nombre,
