@@ -173,12 +173,12 @@ exports.updateProfesor = async (req, res) => {
       [apellidoPaterno, apellidoMaterno, nombre, email, genero, CURP, telefono, direccion, id_dp]
     );
 
-    // 3. Actualizar empleado (solo RFC y estado)
+    // 3. Actualizar empleado (solo estado)
     await connection.query(
       `UPDATE Empleado 
-       SET RFC = ?, estado = ?
+       SET estado = ?
        WHERE id_empleado = ?`,
-      [RFC, estado, id_empleado]
+      [estado, id_empleado]
     );
 
     // 4. Actualizar profesor (ubicacion y nivelEstudio)
