@@ -5,33 +5,10 @@ const { testConnection } = require('./config/db');
 
 const app = express();
 
-// Middleware CORS - Configuración para producción y desarrollo
-const allowedOrigins = [
-  "https://gray-beach-0cdc4470f.3.azurestaticapps.net", // Frontend en Azure
-  "http://localhost:3000", // React/Next.js desarrollo
-  "http://localhost:5173", // Vite desarrollo
-  "http://localhost:4200"  // Angular desarrollo
-];
-
+// Middleware CORS - Configuración para desarrollo local y Azure
 app.use(cors({
-  origin: function (origin, callback) {
-    // Permitir requests sin origin (como Postman, Thunder Client)
-    if (!origin) return callback(null, true);
-    
-    // En desarrollo, permitir cualquier localhost
-    if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
-      return callback(null, true);
-    }
-    
-    // Verificar si el origin está en la lista permitida
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.warn(`CORS bloqueado para origin: ${origin}`);
-      callback(new Error('No permitido por CORS'));
-    }
-  },
-  methods: "GET,POST,PUT,DELETE,OPTIONS,PATCH",
+  origin: ["https://gray-beach-0cdc4470f3.azurestaticapps.net", "http://localhost:3000"],
+  methods: "GET,POST,PUT,DELETE,PATCH,OPTIONS",
   allowedHeaders: "Content-Type, Authorization",
   credentials: true
 }));
@@ -43,17 +20,7 @@ app.get('/', (req, res) => {
   res.json({ 
     message: 'API del Sistema de Gestión Escolar',
     status: 'Servidor funcionando correctamente',
-    version: '1.0.0',
-    environment: process.env.NODE_ENV || 'development'
-  });
-});
-
-// Health check para Azure
-app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'healthy', 
-    timestamp: new Date(),
-    uptime: process.uptime()
+    version: '1.0.0'
   });
 });
 
@@ -85,6 +52,7 @@ const periodosRoutes = require('./routes/periodos');
 const nivelesRoutes = require('./routes/niveles');
 const asistenciasRoutes = require('./routes/asistencias');
 const calificacionesRoutes = require('./routes/calificaciones');
+const estadoGrupoRoutes = require('./routes/estadoGrupo');
 
 // Registrar rutas
 app.use('/api/auth', authRoutes);
@@ -97,6 +65,7 @@ app.use('/api/periodos', periodosRoutes);
 app.use('/api/niveles', nivelesRoutes);
 app.use('/api/asistencias', asistenciasRoutes);
 app.use('/api/calificaciones', calificacionesRoutes);
+app.use('/api/estado-grupo', estadoGrupoRoutes);
 
 // Manejador de errores global
 app.use((err, req, res, next) => {
