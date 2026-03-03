@@ -133,23 +133,23 @@ exports.updateProfesor = async (req, res) => {
     await connection.beginTransaction();
 
     const { id } = req.params;
-    const {
-      apellidoPaterno,
-      apellidoMaterno,
-      nombre,
-      email,
-      genero,
-      CURP,
-      telefono,
-      direccion,
-      ubicacion,
-      numero_empleado,
-      RFC,
-      nivelEstudio,
-      estado
-    } = req.body;
+    const body = req.body;
+    console.log('[updateProfesor] id:', id, 'body:', JSON.stringify(body));
+
+    const apellidoPaterno = body.apellidoPaterno;
+    const apellidoMaterno = body.apellidoMaterno;
+    const nombre = body.nombre;
+    const email = body.email;
+    const genero = body.genero;
+    const CURP = body.CURP;
+    const telefono = body.telefono;
+    const direccion = body.direccion;
+    const ubicacion = body.ubicacion;
+    const nivelEstudio = body.nivelEstudio;
+    const estado = body.estado;
 
     // 1. Obtener id_empleado e id_dp del profesor
+    console.log('[updateProfesor] Paso 1: buscando profesor...');
     const [profesor] = await connection.query(`
       SELECT p.id_empleado, e.id_dp
       FROM Profesor p
@@ -163,8 +163,10 @@ exports.updateProfesor = async (req, res) => {
     }
 
     const { id_empleado, id_dp } = profesor[0];
+    console.log('[updateProfesor] id_empleado:', id_empleado, 'id_dp:', id_dp);
 
     // 2. Actualizar datos personales
+    console.log('[updateProfesor] Paso 2: actualizando DatosPersonales...');
     await connection.query(
       `UPDATE DatosPersonales 
        SET apellidoPaterno = ?, apellidoMaterno = ?, nombre = ?, 
@@ -174,6 +176,7 @@ exports.updateProfesor = async (req, res) => {
     );
 
     // 3. Actualizar empleado (solo estado, RFC no cambia)
+    console.log('[updateProfesor] Paso 3: actualizando Empleado estado =', estado);
     await connection.query(
       `UPDATE Empleado 
        SET estado = ?
@@ -182,6 +185,7 @@ exports.updateProfesor = async (req, res) => {
     );
 
     // 4. Actualizar profesor
+    console.log('[updateProfesor] Paso 4: actualizando Profesor ubicacion =', ubicacion, 'nivelEstudio =', nivelEstudio);
     await connection.query(
       `UPDATE Profesor 
        SET ubicacion = ?, nivelEstudio = ?, estado = ?
@@ -190,6 +194,7 @@ exports.updateProfesor = async (req, res) => {
     );
 
     await connection.commit();
+    console.log('[updateProfesor] Éxito');
 
     res.json({
       success: true,
@@ -197,8 +202,13 @@ exports.updateProfesor = async (req, res) => {
     });
   } catch (error) {
     await connection.rollback();
-    console.error('Error al actualizar profesor:', error);
-    res.status(500).json({ message: 'Error al actualizar profesor', error: error.message });
+    console.error('[updateProfesor] ERROR:', error.message, error.stack);
+    res.status(500).json({ 
+      message: 'Error al actualizar profesor', 
+      error: error.message,
+      sqlMessage: error.sqlMessage || null,
+      step: error.step || null
+    });
   } finally {
     connection.release();
   }
